@@ -74,7 +74,7 @@ post '/task' do
 
   url = params['url']
   command = "#{PROXYCHAINS} #{PYTHON} #{YOU_GET_SCRIPT}"
-  info = `#{command} -i #{url}`
+  info = `PYTHONIOENCODING=utf-8 #{command} -i #{url}`
   md = /.*\n
         Title:\s*(?<title>.*?)\n
         Type:\s*.*\(video\/(?<type>.*)\)\n
@@ -89,12 +89,12 @@ post '/task' do
   error 409 if Dir.glob(File.join(DOWNLOAD_DIR, title) + '*').length > 0
   logger.info("task added: #{title}, size: #{size}")
 
-  unescaped_title = title.gsub(/[^\w\(\)\. ]/, '-')
+  unescaped_title = title.gsub(/[\/\\\\\*\?]/, '-')
 
   path = File.join(DOWNLOAD_DIR, unescaped_title) + '.' + type
 
   thread = Thread.new do
-    system("#{command} -o #{DOWNLOAD_DIR} #{url}")
+    system("PYTHONIOENCODING=utf-8 #{command} -o #{DOWNLOAD_DIR} #{url}")
     if File.exist?(path)
       db['list'].update({ :thread_id => Thread::current.object_id },
                         { '$set' => { :status => 'finished' } })
@@ -127,7 +127,11 @@ post '/task/:id/delete' do
   id = params['id']
   rec = db['list'].find('thread_id' => id.to_i).first
   error 400 if rec.nil?
+
+  Thread.list.select {|e| e.object_id == id.to_i }.map(&:terminate)
   db['list'].remove('thread_id' => id.to_i).first
+  File.unlink(rec['path'])
+
   success
 end
 
