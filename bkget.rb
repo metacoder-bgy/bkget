@@ -29,7 +29,7 @@ helpers do
     content_type 'application/javascript'
   end
   def reset_database
-    FileUtils.rm_rf("#{DOWNLOAD_PATH}/.", secure: true)
+    FileUtils.rm_rf("#{DOWNLOAD_DIR}/.", secure: true)
     db['list'].remove()
   end
 end
@@ -89,7 +89,9 @@ post '/task' do
   error 409 if Dir.glob(File.join(DOWNLOAD_DIR, title) + '*').length > 0
   logger.info("task added: #{title}, size: #{size}")
 
-  path = File.join(DOWNLOAD_DIR, title ) + '.' + type
+  unescaped_title = title.gsub(/[^\w\(\)\. ]/, '-')
+
+  path = File.join(DOWNLOAD_DIR, unescaped_title) + '.' + type
 
   thread = Thread.new do
     system("#{command} -o #{DOWNLOAD_DIR} #{url}")
@@ -107,32 +109,37 @@ post '/task' do
                       :status => 'downloading'
                     })
 
+
   # success 201: Created
   status 201
 end
 
 get '/task/:id' do
   id = params['id']
-  rec = db['list'].find('id' => id.to_i).first
+  rec = db['list'].find('thread_id' => id.to_i).first
   error 400 if rec.nil?
   not_found unless File.exist? rec['path']
-  send_file rec['path']
+  send_file(rec['path'], :filename => File.basename(rec['path']))
 end
 
-delete '/task/:id' do
+post '/task/:id/delete' do
+  allow_access_control
   id = params['id']
-  rec = db['list'].find('id' => id.to_i).first
+  rec = db['list'].find('thread_id' => id.to_i).first
   error 400 if rec.nil?
-  db['list'].remove('id' => id.to_i).first
+  db['list'].remove('thread_id' => id.to_i).first
+  success
 end
 
 get '/smile' do
+  content_type 'text/plain'
   ':)'
 end
 
 get '/reset' do
   error 401 unless params['do'] == 'yes'
   reset_database
+  redirect '/smile'
 end
 
 
