@@ -14,6 +14,7 @@ DB_NAME = 'bkget'
 enable :logging
 set :bind, '0.0.0.0'
 
+
 helpers do
   def db
     return @db if @db
@@ -27,6 +28,19 @@ helpers do
     headers['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS'
     headers['Access-Control-Max-Age'] = "1728000"
     content_type 'application/javascript'
+  end
+
+  def extension_name_map(name)
+    mapping = {
+        'video/3gpp' => '3gp',
+        'video/f4v' => 'flv',
+        'video/mp4' => 'mp4',
+        'video/MP2T' => 'ts',
+        'video/webm' => 'webm',
+        'video/x-flv' => 'flv',
+        'video/x-ms-asf' => 'asf',
+        'audio/mpeg' => 'mp3'
+    }
   end
   def reset_database
     FileUtils.rm_rf("#{DOWNLOAD_DIR}/.", secure: true)
@@ -46,6 +60,7 @@ get '/list' do
 
   data = db['list'].find.to_a
   list = data.map do |rec|
+    next unless File.exist?(rec['path']) || File.exist?(rec['path'] + '.download')
     downloaded_size = File.size?(rec['path']) ||
       File.size(rec['path'] + '.download')
     status = case rec['status']
@@ -74,7 +89,7 @@ post '/task' do
 
   url = params['url']
   command = "#{PROXYCHAINS} #{PYTHON} #{YOU_GET_SCRIPT}"
-  info = `PYTHONIOENCODING=utf-8 #{command} -i #{url}`
+  info = `#{command} -i #{url}`
   md = /.*\n
         Title:\s*(?<title>.*?)\n
         Type:\s*.*\(video\/(?<type>.*)\)\n
@@ -94,7 +109,7 @@ post '/task' do
   path = File.join(DOWNLOAD_DIR, unescaped_title) + '.' + type
 
   thread = Thread.new do
-    system("PYTHONIOENCODING=utf-8 #{command} -o #{DOWNLOAD_DIR} #{url}")
+    system("#{command} -o #{DOWNLOAD_DIR} #{url}")
     if File.exist?(path)
       db['list'].update({ :thread_id => Thread::current.object_id },
                         { '$set' => { :status => 'finished' } })
