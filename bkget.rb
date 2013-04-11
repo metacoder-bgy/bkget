@@ -166,11 +166,11 @@ post '/task/:id/delete' do
   rec = db['list'].find('thread_id' => id.to_i).first
   error 400 if rec.nil?
 
-  Thread.list.select {|e| e.object_id == id.to_i }.map(&:terminate)
+  Thread.list.select {|e| e.object_id == id.to_i }.tap{|x| logger.info(x)}.map(&:terminate)
   db['list'].remove('thread_id' => id.to_i).first
-  File.unlink(rec['path'])
 
-  success
+  File.unlink(rec['path']) rescue Errno::ENOENT
+  File.unlink(rec['path'] + '.download') rescue Errno::ENOENT
 end
 
 get '/smile' do
