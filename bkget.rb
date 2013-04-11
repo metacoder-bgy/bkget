@@ -3,6 +3,7 @@
 require 'sinatra'
 require 'json'
 require 'mongo'
+require 'uri'
 
 PYTHON = '/usr/bin/python3'
 YOU_GET_SCRIPT = '/home/shou/scripts/you-get/you-get'
@@ -44,6 +45,15 @@ helpers do
     mapping[name]
   end
 
+  def proxy_needed?(video_url)
+    host = URI(video_url)
+    proxied_sites = %w[www.youtube.com vimeo.com www.coursera.org
+                       blip.tv dailymotion.com facebook.com
+                       plus.google.com www.tumblr.com vine.co
+                       soundcloud.com www.mixcloud.com www.freesound.org
+                       jpopsuki.tv vid48.com www.nicovideo.jp]
+    return proxied_sites.any? {|x| x == host }
+  end
 
   def reset_database
     FileUtils.rm_rf("#{DOWNLOAD_DIR}/.", secure: true)
@@ -57,9 +67,6 @@ end
 
 get '/list' do
   allow_access_control
-
-  # return ['{ "list": [] }']
-
 
   data = db['list'].find.to_a
   list = data.map do |rec|
@@ -78,14 +85,15 @@ get '/list' do
 
 
     {
-      :id => rec['thread_id'],
+      :id => rec['thread_id'].to_s,
       :title => rec['title'],
       :total_size => rec['size'],
       :downloaded_size => downloaded_size,
       :status => status,
       :created_at => rec['created_at'],
       :finished_at => rec['finished_at'],
-      :original_url => rec['original_url']
+      :original_url => rec['original_url'],
+      :mime_type => rec['mime_type']
     }
   end
 
@@ -96,7 +104,8 @@ post '/task' do
   allow_access_control
 
   url = params['url']
-  command = "#{PROXYCHAINS} #{PYTHON} #{YOU_GET_SCRIPT}"
+  command = "#{PYTHON} #{YOU_GET_SCRIPT}"
+  command = "#{PROXYCHAINS} #{command}" if proxy_needed?(url)
   info = `#{command} -i #{url}`
   md = /.*\n
         Title:\s*(?<title>.*?)\n
