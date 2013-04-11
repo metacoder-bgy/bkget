@@ -30,7 +30,7 @@ helpers do
     content_type 'application/javascript'
   end
 
-  def extension_name_map(name)
+  def map_extension_name(name)
     mapping = {
         'video/3gpp' => '3gp',
         'video/f4v' => 'flv',
@@ -41,7 +41,10 @@ helpers do
         'video/x-ms-asf' => 'asf',
         'audio/mpeg' => 'mp3'
     }
+    mapping[name]
   end
+
+
   def reset_database
     FileUtils.rm_rf("#{DOWNLOAD_DIR}/.", secure: true)
     db['list'].remove()
@@ -74,14 +77,19 @@ get '/list' do
              end
 
 
-    { :id => rec['thread_id'],
+    {
+      :id => rec['thread_id'],
       :title => rec['title'],
       :total_size => rec['size'],
       :downloaded_size => downloaded_size,
-      :status => status }
+      :status => status,
+      :created_at => rec['created_at'],
+      :finished_at => rec['finished_at'],
+      :original_url => rec['original_url']
+    }
   end
 
-  JSON.dump(:list => list)
+  JSON.dump(:list => list.compact)
 end
 
 post '/task' do
@@ -92,7 +100,7 @@ post '/task' do
   info = `#{command} -i #{url}`
   md = /.*\n
         Title:\s*(?<title>.*?)\n
-        Type:\s*.*\(video\/(?<type>.*)\)\n
+        Type:\s*.*\((?<type>.*)\)\n
         Size:.*\((?<size>\d+)\sBytes\)
        /mx.match(info)
   # client error 400: bad request
@@ -104,15 +112,17 @@ post '/task' do
   error 409 if Dir.glob(File.join(DOWNLOAD_DIR, title) + '*').length > 0
   logger.info("task added: #{title}, size: #{size}")
 
-  unescaped_title = title.gsub(/[\/\\\\\*\?]/, '-')
+  unescaped_title = title.gsub(/[\/\\\*\?]/, '-')
+  ext_name = map_extension_name(type) or error 400
 
-  path = File.join(DOWNLOAD_DIR, unescaped_title) + '.' + type
+  path = File.join(DOWNLOAD_DIR, unescaped_title) + '.' + ext_name
 
   thread = Thread.new do
     system("#{command} -o #{DOWNLOAD_DIR} #{url}")
     if File.exist?(path)
       db['list'].update({ :thread_id => Thread::current.object_id },
-                        { '$set' => { :status => 'finished' } })
+                        { '$set' => { :status => 'finished',
+                                      :finished_at => Time.now.to_i } })
     end
   end
 
@@ -121,7 +131,11 @@ post '/task' do
                       :size => size.to_i,
                       :path => path,
                       :thread_id => thread.object_id,
-                      :status => 'downloading'
+                      :status => 'downloading',
+                      :created_at => Time.now.to_i,
+                      :finished_at => 0,
+                      :mime_type => type,
+                      :original_url => url
                     })
 
 
