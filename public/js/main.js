@@ -1,5 +1,4 @@
 var base_uri = '';
-// var base_uri = 'http://x.bgy.xxx/tools/bkget/';
 var file_list = [];
 
 $(document).ready(function() {
@@ -26,19 +25,20 @@ function refresh() {
 		type: 'GET',
 		url: base_uri + 'list',
 		dataType: 'json',
+		timeout: 3000,
 		success: function(data) {
 			file_list = data.list;
 			renderFileList();
-		},
-		error: function(jqXHR, textStatus) {
 		}
 	});
 }
 
 function submit() {
-	var url = $('#video_url').val();
 	if($('#submit').hasClass('icon-spinner'))
 		return;
+	var url = $('#video_url').val();
+	if(!/^https?:\/\//.test(url))
+		url = 'http://' + url;
 	hideWaring();
 	$('#submit').removeClass('icon-cloud-download').addClass('icon-spinner icon-spin');
 	$.ajax({
@@ -47,6 +47,7 @@ function submit() {
 		data: {
 			url: url
 		},
+		timeout: 30000,
 		statusCode: {
 			400: badRequest,
 			409: conflict,
@@ -60,6 +61,12 @@ function submit() {
 			};
 		}(url),
 		error: function(e,m) {
+			switch(m) {
+			case 'timeout':
+				timeout *= 2;
+				showWaring('Request timeout. Please switch off your proxy.');
+				break;
+			}
 		},
 		complete: function() {
 			$('#submit').removeClass('icon-spinner icon-spin').addClass('icon-cloud-download');
@@ -145,10 +152,6 @@ function hideWaring() {
 }
 
 function renderFileList() {
-	if(!file_list.length) {
-
-	}
-
 	var status_order = {
 		'downloading': 0,
 		'finished': 1,
