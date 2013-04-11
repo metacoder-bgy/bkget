@@ -1,4 +1,4 @@
-var base_uri = 'http://x.bgy.xxx:4567/';
+var base_uri = '';
 // var base_uri = 'http://x.bgy.xxx/tools/bkget/';
 var file_list = [];
 

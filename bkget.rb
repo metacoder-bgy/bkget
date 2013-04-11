@@ -62,7 +62,7 @@ helpers do
 end
 
 get '/' do
-  send_file File.join(settings.public_folder, 'index.html')
+  redirect to('/index.html')
 end
 
 get '/list' do
@@ -181,7 +181,7 @@ end
 get '/reset' do
   error 401 unless params['do'] == 'yes'
   reset_database
-  redirect '/smile'
+  redirect to('smile')
 end
 
 
