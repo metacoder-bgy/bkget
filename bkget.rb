@@ -46,7 +46,7 @@ helpers do
   end
 
   def proxy_needed?(video_url)
-    host = URI(video_url)
+    host = URI(video_url).host
     proxied_sites = %w[www.youtube.com vimeo.com www.coursera.org
                        blip.tv dailymotion.com facebook.com
                        plus.google.com www.tumblr.com vine.co
@@ -157,7 +157,9 @@ get '/task/:id' do
   rec = db['list'].find('thread_id' => id.to_i).first
   error 400 if rec.nil?
   not_found unless File.exist? rec['path']
-  send_file(rec['path'], :filename => File.basename(rec['path']))
+  send_file(rec['path'],
+            :filename => File.basename(rec['path']),
+            :length => File.size(rec['path']))
 end
 
 post '/task/:id/delete' do
