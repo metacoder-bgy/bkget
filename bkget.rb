@@ -46,7 +46,7 @@ helpers do
   end
 
   def proxy_needed?(video_url)
-    host = URI(video_url)
+    host = URI(video_url).host
     proxied_sites = %w[www.youtube.com vimeo.com www.coursera.org
                        blip.tv dailymotion.com facebook.com
                        plus.google.com www.tumblr.com vine.co
@@ -62,7 +62,7 @@ helpers do
 end
 
 get '/' do
-  send_file File.join(settings.public_folder, 'index.html')
+  redirect to('/index.html')
 end
 
 get '/list' do
@@ -157,7 +157,9 @@ get '/task/:id' do
   rec = db['list'].find('thread_id' => id.to_i).first
   error 400 if rec.nil?
   not_found unless File.exist? rec['path']
-  send_file(rec['path'], :filename => File.basename(rec['path']))
+  send_file(rec['path'],
+            :filename => File.basename(rec['path']),
+            :length => File.size(rec['path']))
 end
 
 post '/task/:id/delete' do
@@ -166,11 +168,11 @@ post '/task/:id/delete' do
   rec = db['list'].find('thread_id' => id.to_i).first
   error 400 if rec.nil?
 
-  Thread.list.select {|e| e.object_id == id.to_i }.map(&:terminate)
+  Thread.list.select {|e| e.object_id == id.to_i }.tap{|x| logger.info(x)}.map(&:terminate)
   db['list'].remove('thread_id' => id.to_i).first
-  File.unlink(rec['path'])
 
-  success
+  File.unlink(rec['path']) rescue Errno::ENOENT
+  File.unlink(rec['path'] + '.download') rescue Errno::ENOENT
 end
 
 get '/smile' do
@@ -181,7 +183,7 @@ end
 get '/reset' do
   error 401 unless params['do'] == 'yes'
   reset_database
-  redirect '/smile'
+  redirect to('smile')
 end
 
 

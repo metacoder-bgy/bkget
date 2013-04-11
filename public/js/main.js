@@ -1,6 +1,5 @@
-// var base_uri = 'http://x.bgy.xxx:4567/',
-var base_uri = 'http://x.bgy.xxx/tools/bkget/';
-	file_list = [];
+var base_uri = '';
+var file_list = [];
 
 $(document).ready(function() {
 	$('#submit').click(submit);
