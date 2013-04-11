@@ -76,11 +76,9 @@ get '/list' do
     status = case rec['status']
              when 'finished' then 'finished'
              when 'downloading'
-               if Thread.list.map(&:object_id).include? rec['thread_id']
-                 'downloading'
-               else
-                 'aborted'
-               end
+#               if Thread.list.map(&:object_id).include? rec['thread_id'].to_i
+               'downloading'
+#               end
              end
 
 
