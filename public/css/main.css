@@ -25,7 +25,7 @@ body {
 }
 
 a {
-	text-decoration:none;
+	text-decoration: none;
 }
 
 li {
@@ -123,7 +123,6 @@ body::-webkit-scrollbar-corner{background-clip:padding-box;background-color:#f5f
 
 .list-view {
 	margin-top: 20px;
-	/*display: inline-block;*/
 }
 
 #download_list li {
@@ -233,11 +232,14 @@ body::-webkit-scrollbar-corner{background-clip:padding-box;background-color:#f5f
 }
 
 .footer {
-	color: #EEE;
 	margin-top: 10px;
 	width: 100%;
 	position: fixed;
 	bottom: 0;
 	left: 0;
 	background-color: rgba(0,0,0,.75);
+}
+
+.footer * {
+    color: #EEE;
 }
