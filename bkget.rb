@@ -11,9 +11,19 @@ PROXYCHAINS = '/usr/bin/proxychains'
 DOWNLOAD_DIR = '/var/cache/bkget'
 DB_NAME = 'bkget'
 
+ENV['LANG'] = 'en_US.UTF-8'
+ENV['LC_ALL'] = 'en_US.UTF-8'
+ENV['LC_CTYPE'] = 'en_US.UTF-8'
+
 
 enable :logging
+disable :run, :reload
 set :bind, '0.0.0.0'
+
+if RUBY_VERSION =~ /1\.9/
+  Encoding.default_external = Encoding::UTF_8
+  Encoding.default_internal = Encoding::UTF_8
+end
 
 
 helpers do
@@ -46,7 +56,11 @@ helpers do
   end
 
   def proxy_needed?(video_url)
-    host = URI(video_url).host
+    begin
+      host = URI(video_url).host
+    rescue URI::InvalidURIError
+      error 400
+    end
     proxied_sites = %w[www.youtube.com vimeo.com www.coursera.org
                        blip.tv dailymotion.com facebook.com
                        plus.google.com www.tumblr.com vine.co
@@ -70,6 +84,7 @@ get '/list' do
 
   data = db['list'].find.to_a
   list = data.map do |rec|
+    next unless rec['path']
     next unless File.exist?(rec['path']) || File.exist?(rec['path'] + '.download')
     downloaded_size = File.size?(rec['path']) ||
       File.size(rec['path'] + '.download')
@@ -95,13 +110,14 @@ get '/list' do
     }
   end
 
-  JSON.dump(:list => list.compact)
+  JSON.dump(:list => list.compact.sort_by {|x| x[:created_at]})
 end
 
 post '/task' do
   allow_access_control
 
   url = params['url']
+
   command = "#{PYTHON} #{YOU_GET_SCRIPT}"
   command = "#{PROXYCHAINS} #{command}" if proxy_needed?(url)
   info = `#{command} -i #{url}`
@@ -184,6 +200,9 @@ get '/reset' do
   redirect to('smile')
 end
 
+get '/test' do
+  ENV.inspect
+end
 
 
 #
