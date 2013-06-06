@@ -129,6 +129,10 @@ body::-webkit-scrollbar-corner{background-clip:padding-box;background-color:#f5f
 	width: 400px;
 }
 
+#download_list li .ui-progress {
+        padding-right: 2px;
+}
+
 #file_list li {
 	position: relative;
 	width: 388px;

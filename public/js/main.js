@@ -186,7 +186,7 @@ function renderFileList() {
 			}
 			$('#download_list').prepend(
 				$('<li title="' + this.title + '" id="file_' + this.id + '" style="display:none;">')
-				.append($('<div class="ui-progress-bar ui-container transition" id="progress_bar">')
+				.append($('<div class="ui-progress-bar ui-container transition" id="progress_bar" style="padding-right:2px;">')
 					.append($('<div class="ui-progress" style="width: ' + this.downloaded_size / this.total_size * 100 + '%;">'))
 					.append($('<span class="ui-label title">' + this.title + '</span>'))
 					.append($('<span class="ui-label progress">' + humanReadableSize(this.downloaded_size) + '/' + humanReadableSize(this.total_size) + ' ' + Math.floor(this.downloaded_size / this.total_size * 100) + '%</span>'))
