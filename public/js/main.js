@@ -192,7 +192,7 @@ function renderFileList() {
 					.append($('<span class="ui-label progress">' + humanReadableSize(this.downloaded_size) + '/' + humanReadableSize(this.total_size) + ' ' + Math.floor(this.downloaded_size / this.total_size * 100) + '%</span>'))
 					.append($('<a class="icon-remove">')))
 			);
-		} else if (this.status === 'finished') {
+		} else if (this.status === 'finished' || this.downloaded_size >= this.total_size) {
 			if($('#file_' + this.id).length)
 				return;
 			$('#file_list').prepend(
