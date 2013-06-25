@@ -177,7 +177,7 @@ function renderFileList() {
 	$(file_list).sort(function(a,b) {
 		status_order[a.status] - status_order[b.status];
 	}).each(function() {
-		if (this.status === 'downloading') {
+		if (this.status === 'downloading' && this.downloaded_size < this.total_size) {
 			if($('#file_' + this.id).length) {
 				$('#file_' + this.id + ' .ui-progress')
 				.width(this.downloaded_size / this.total_size * 100 + '%');
