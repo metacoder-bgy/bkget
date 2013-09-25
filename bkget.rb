@@ -73,11 +73,31 @@ helpers do
     FileUtils.rm_rf("#{DOWNLOAD_DIR}/.", secure: true)
     db['list'].remove()
   end
+
+  def cache_location(path)
+    return path if File.exist? path
+    return path + '.download' if File.exist? path + '.download'
+    extname = File.extname(File.basename(path))
+    path[/#{extname}$/] = '[00]' + extname
+    return path if File.exist? path
+    return nil
+  end
+
+  def kill_dead_tasks
+    thread_list = Thread.list.map(&:object_id).map(&:to_s)
+    db['list'].find.to_a.each do |rec|
+      unless thread_list.include? rec['thread_id']
+        db['list'].remove({:object_id => rec['object_id']})
+        File.unlink(cache_location(rec['path'])) rescue Errno::ENOENT
+      end
+    end
+
+  end
+
 end
 
 get '/' do
   send_file 'public/index.html', :type => :html
-#  redirect to('/index.html')
 end
 
 get '/list' do
@@ -86,9 +106,9 @@ get '/list' do
   data = db['list'].find.to_a
   list = data.map do |rec|
     next unless rec['path']
-    next unless File.exist?(rec['path']) || File.exist?(rec['path'] + '.download')
-    downloaded_size = File.size?(rec['path']) ||
-      File.size(rec['path'] + '.download')
+    next unless cache_location(rec['path'])
+
+    downloaded_size = File.size(cache_location(rec['path']))
     status = case rec['status']
              when 'finished' then 'finished'
              when 'downloading'
