@@ -17,7 +17,7 @@ ENV['LC_CTYPE'] = 'en_US.UTF-8'
 
 
 enable :logging
-disable :run, :reload
+# disable :run, :reload
 set :bind, '0.0.0.0'
 
 if RUBY_VERSION =~ /1\.9/
@@ -76,7 +76,8 @@ helpers do
 end
 
 get '/' do
-  redirect to('/index.html')
+  send_file 'public/index.html', :type => :html
+#  redirect to('/index.html')
 end
 
 get '/list' do
