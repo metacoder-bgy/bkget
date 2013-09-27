@@ -1,3 +1,14 @@
+
+
+
+
+
+
+
+
+
+
+
 #
 
 require 'sinatra'
@@ -203,7 +214,9 @@ post '/task/:id/delete' do
   rec = db['list'].find('thread_id' => id.to_i).first
   error 400 if rec.nil?
 
-  Thread.list.select {|e| e.object_id == id.to_i }.tap{|x| logger.info(x)}.map(&:terminate)
+  Thread.list.select {|e| e.object_id == id.to_i }
+    .tap{|x|logger.info(x)}
+    .map(&:terminate)
   db['list'].remove('thread_id' => id.to_i).first
 
   File.unlink(rec['path']) rescue Errno::ENOENT
@@ -217,6 +230,8 @@ end
 
 get '/reset' do
   error 401 unless params['do'] == 'yes'
+  kill_dead_tasks
+  Dir.glob(DOWNLOAD_DIR + '/*').each {|f| File.unlink(f) }
   reset_database
   redirect to('smile')
 end
